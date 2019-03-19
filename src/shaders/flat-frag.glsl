@@ -179,6 +179,9 @@ void main() {
   
   out_Col = vec4(terrainColor, population);
 
+  // if (y > 0.5) {
+  //   out_Col = vec4(1.0);
+  // }
 
 
 }

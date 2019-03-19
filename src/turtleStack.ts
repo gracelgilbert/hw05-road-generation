@@ -9,16 +9,16 @@ class TurtleStack {
     }
 
     push (currTurtle: Turtle) {
-        let newTurtle = new Turtle(currTurtle.getPos(), currTurtle.getForward(), currTurtle.getRight(), currTurtle.getDepth());
+        let newTurtle = new Turtle(currTurtle.getPos(), currTurtle.getForward(), currTurtle.getRight(), currTurtle.getDepth(), currTurtle.FAILED, currTurtle.branchDelay, currTurtle.killDelay);
         this.stack.push(newTurtle);
     }
 
     pop () : Turtle {
         let poppedTurtle = this.stack.pop();
-        let newTurtle: Turtle = new Turtle(poppedTurtle.getPos(), poppedTurtle.getForward(), poppedTurtle.getRight(), poppedTurtle.getDepth());
-        if (poppedTurtle.FAILED) {
-            newTurtle.fail();
-        }
+        let newTurtle: Turtle = new Turtle(poppedTurtle.getPos(), poppedTurtle.getForward(), poppedTurtle.getRight(), poppedTurtle.getDepth(), poppedTurtle.FAILED, poppedTurtle.branchDelay, poppedTurtle.killDelay);
+        // if (poppedTurtle.FAILED) {
+        //     newTurtle.fail();
+        // }
         return newTurtle;
     }
 

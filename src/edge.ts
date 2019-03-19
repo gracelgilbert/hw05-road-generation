@@ -12,6 +12,7 @@ class Edge {
         this.length = length;
         this.direction = direction;
         this.width = width;
+        this.endpoint = vec3.create();
         vec3.multiply(this.endpoint, vec3.fromValues(this.length, this.length, this.length), this.direction);
         vec3.add(this.endpoint, this.origin, this.endpoint);
     }

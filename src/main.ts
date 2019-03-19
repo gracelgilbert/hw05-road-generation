@@ -1,4 +1,4 @@
-import {vec3} from 'gl-matrix';
+import {vec3, mat3, vec4} from 'gl-matrix';
 import * as Stats from 'stats-js';
 import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
@@ -21,7 +21,7 @@ let screenQuad: ScreenQuad;
 let time: number = 0.0;
 let road: Road;
 
-function loadScene() {
+function loadScene(road: Road) {
   square = new Square();
   square.create();
 
@@ -31,25 +31,41 @@ function loadScene() {
   // offsets and gradiated colors for a 100x100 grid
   // of squares, even though the VBO data for just
   // one square is actually passed to the GPU
-  let offsetsArray = [];
-  let colorsArray = [];
-  let n: number = 100.0;
-  for(let i = 0; i < n; i++) {
-    for(let j = 0; j < n; j++) {
-      offsetsArray.push(i);
-      offsetsArray.push(j);
-      offsetsArray.push(0);
+  // let offsetsArray = [];
+  // let colorsArray = [];
+  // let transformationsArray = [];
 
-      colorsArray.push(i / n);
-      colorsArray.push(j / n);
-      colorsArray.push(1.0);
-      colorsArray.push(1.0); // Alpha channel
-    }
+  let col1sArray = [];
+  let col2sArray = [];
+  let col3sArray = [];
+
+  let n: number = road.transformations.length;
+  console.log("here");
+  console.log(n);
+
+  for(let i = 0; i < n; i++) {
+    let transformation: mat3 = road.transformations[i];
+
+      col1sArray.push(transformation[0]);
+      col1sArray.push(transformation[1]);
+      col1sArray.push(transformation[2]);
+
+      col2sArray.push(transformation[3]);
+      col2sArray.push(transformation[4]);
+      col2sArray.push(transformation[5]);
+
+      col3sArray.push(transformation[6]);
+      col3sArray.push(transformation[7]);
+      col3sArray.push(transformation[8]);
+
   }
-  let offsets: Float32Array = new Float32Array(offsetsArray);
-  let colors: Float32Array = new Float32Array(colorsArray);
-  square.setInstanceVBOs(offsets, colors);
-  square.setNumInstances(n * n); // grid of "particles"
+  // let offsets: Float32Array = new Float32Array(offsetsArray);
+  // let colors: Float32Array = new Float32Array(colorsArray);
+  let col1s: Float32Array = new Float32Array(col1sArray);
+  let col2s: Float32Array = new Float32Array(col2sArray);
+  let col3s: Float32Array = new Float32Array(col3sArray);  
+  square.setInstanceVBOs(col1s, col2s, col3s);
+  square.setNumInstances(n); // grid of "particles"
 }
 
 function main() {
@@ -60,9 +76,6 @@ function main() {
   stats.domElement.style.left = '0px';
   stats.domElement.style.top = '0px';
   document.body.appendChild(stats.domElement);
-
-
-
 
 
 
@@ -83,8 +96,6 @@ function main() {
   setGL(gl);
 
 
-  // Initial call to load scene
-  loadScene();
   screenQuad = new ScreenQuad();
   screenQuad.create();
 
@@ -111,17 +122,7 @@ function main() {
   ]);
 
   // This function will be called every frame
-  function tick() {
-    camera.update();
-    stats.begin();
-    instancedShader.setTime(time);
-    flat.setTime(time++);
-
-
-
-    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
-    renderer.clear();
-    const texWidth = window.innerWidth;
+  const texWidth = window.innerWidth;
     const texHeight = window.innerHeight;
   
     var fb = gl.createFramebuffer();
@@ -157,6 +158,49 @@ function main() {
   
     // done with shader fun code for this part
 
+
+
+    renderer.render(camera, flat,[screenQuad]);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, myTexture, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+      var pixels = new Uint8Array(texWidth * texHeight * 4);
+      gl.readPixels(0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    }
+    console.log(pixels[0] / 255 + ", " + pixels[1] / 255 + "," + pixels[2] / 255 + "," + pixels[3] / 255);
+    var vectorPixels = new Array<vec4>(texWidth * texHeight);
+    for (var i = 0; i < texWidth * texHeight; i++) {
+      let vectorVal = vec4.fromValues(pixels[4 * i] / 255, pixels[4 * i + 1] / 255, pixels[4 * i + 2] / 255, pixels[4 * i + 3] / 255);
+      vectorPixels.push(vectorVal);
+    }
+
+    road = new Road(vectorPixels, texWidth, texHeight);
+
+    loadScene(road);
+
+
+
+  function tick() {
+    camera.update();
+    stats.begin();
+    instancedShader.setTime(time);
+    flat.setTime(time++);
+
+
+
+    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    // renderer.clear();
+    
+
+
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, myTexture);
+
     if (controls.displayPopulation == true) {
       texture.setPopToggle(1.0);
     } else {
@@ -169,20 +213,10 @@ function main() {
       texture.setTerrainToggle(0.0);
     }
   
-    renderer.render(camera, flat,[screenQuad]);
-
-
-    road = new Road(myTexture);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, myTexture);
 
     renderer.render(camera, texture,   [screenQuad]);
     renderer.render(camera, instancedShader, [
-      // square,
+      square,
     ]);
     stats.end();
 

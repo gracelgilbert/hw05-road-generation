@@ -27,7 +27,9 @@ class ShaderProgram {
   attrTranslate: number; // Used in the vertex shader during instanced rendering to offset the vertex positions to the particle's drawn position.
   attrUV: number;
 
-  attrTransform: number;
+  attrTransform1: number;
+  attrTransform2: number;
+  attrTransform3: number;
 
 
   unifModel: WebGLUniformLocation;
@@ -62,7 +64,9 @@ class ShaderProgram {
     this.attrTranslate = gl.getAttribLocation(this.prog, "vs_Translate");
 
 
-    this.attrTransform = gl.getAttribLocation(this.prog, "vs_Transform");
+    this.attrTransform1 = gl.getAttribLocation(this.prog, "vs_Transform1");
+    this.attrTransform2 = gl.getAttribLocation(this.prog, "vs_Transform2");
+    this.attrTransform3 = gl.getAttribLocation(this.prog, "vs_Transform3");
 
 
     this.attrUV = gl.getAttribLocation(this.prog, "vs_UV");
@@ -189,10 +193,22 @@ class ShaderProgram {
       gl.vertexAttribDivisor(this.attrCol, 1); // Advance 1 index in col VBO for each drawn instance
     }
 
-    if (this.attrTransform != -1 && d.bindCol()) {
-      gl.enableVertexAttribArray(this.attrTransform);
-      gl.vertexAttribPointer(this.attrTransform, 9, gl.FLOAT, false, 0, 0);
-      gl.vertexAttribDivisor(this.attrTransform, 1); // Advance 1 index in col VBO for each drawn instance
+    if (this.attrTransform1 != -1 && d.bindTransform1()) {
+      gl.enableVertexAttribArray(this.attrTransform1);
+      gl.vertexAttribPointer(this.attrTransform1, 3, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(this.attrTransform1, 1); // Advance 1 index in col VBO for each drawn instance
+    }
+
+    if (this.attrTransform2 != -1 && d.bindTransform2()) {
+      gl.enableVertexAttribArray(this.attrTransform2);
+      gl.vertexAttribPointer(this.attrTransform2, 3, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(this.attrTransform2, 1); // Advance 1 index in col VBO for each drawn instance
+    }
+
+    if (this.attrTransform3 != -1 && d.bindTransform3()) {
+      gl.enableVertexAttribArray(this.attrTransform3);
+      gl.vertexAttribPointer(this.attrTransform3, 3, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(this.attrTransform3, 1); // Advance 1 index in col VBO for each drawn instance
     }
 
     if (this.attrTranslate != -1 && d.bindTranslate()) {

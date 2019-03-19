@@ -8,14 +8,19 @@ class Turtle {
     right: vec3;
     depth: number;  
     FAILED: boolean;
+    branchDelay: number;
+    killDelay: number;
+
     // will have a temporary road piece
 
   
-    constructor(position: vec3, forward: vec3, right: vec3, depth: number) {
+    constructor(position: vec3, forward: vec3, right: vec3, depth: number, failedVal: boolean, branchDelay: number, killDelay: number) {
       this.position = position;
       this.forward = forward;
       this.right = right;
-      this.FAILED = false;
+      this.FAILED = failedVal;
+      this.branchDelay = branchDelay;
+      this.killDelay = killDelay;
 
       this.depth = depth;
     }
@@ -58,7 +63,7 @@ class Turtle {
     rotate(deg: number) {
         let rotMat = mat3.create();
         rotMat = mat3.rotate(rotMat, mat3.create(), glMatrix.toRadian(deg));
-        this.right = vec3.normalize(this.right, vec3.transformMat3(this.right, this.right, rotMat));
+        this.forward = vec3.normalize(this.forward, vec3.transformMat3(this.forward, this.forward, rotMat));
     }
 
     getRotationMatrix() : mat3 {
