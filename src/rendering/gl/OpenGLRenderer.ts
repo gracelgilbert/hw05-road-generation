@@ -22,8 +22,9 @@ class OpenGLRenderer {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 
-  render(camera: Camera, prog: ShaderProgram, drawables: Array<Drawable>) {
-    let model = mat4.create();
+  // render(camera: Camera, prog: ShaderProgram, mapValues: number[], drawables: Array<Drawable>) {
+render(camera: Camera, prog: ShaderProgram, drawables: Array<Drawable>) {
+      let model = mat4.create();
     let viewProj = mat4.create();
     let color = vec4.fromValues(1, 0, 0, 1);
     // Each column of the axes matrix is an axis. Right, Up, Forward.
@@ -33,6 +34,7 @@ class OpenGLRenderer {
 
 
     prog.setEyeRefUp(camera.controls.eye, camera.controls.center, camera.controls.up);
+    // prog.setPopulationMap(mapValues);
     mat4.identity(model);
     mat4.multiply(viewProj, camera.projectionMatrix, camera.viewMatrix);
     prog.setModelMatrix(model);

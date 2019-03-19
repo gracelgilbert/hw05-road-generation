@@ -27,6 +27,9 @@ class ShaderProgram {
   attrTranslate: number; // Used in the vertex shader during instanced rendering to offset the vertex positions to the particle's drawn position.
   attrUV: number;
 
+  attrTransform: number;
+
+
   unifModel: WebGLUniformLocation;
   unifModelInvTr: WebGLUniformLocation;
   unifViewProj: WebGLUniformLocation;
@@ -36,6 +39,11 @@ class ShaderProgram {
   unifEye: WebGLUniformLocation;
   unifUp: WebGLUniformLocation;
   unifDimensions: WebGLUniformLocation;
+  unifPopulationMap: WebGLUniformLocation;
+  unifSampler2D: WebGLUniformLocation;
+  unifTerrainToggle: WebGLUniformLocation;
+  unifPopToggle: WebGLUniformLocation;
+
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -52,6 +60,11 @@ class ShaderProgram {
     this.attrNor = gl.getAttribLocation(this.prog, "vs_Nor");
     this.attrCol = gl.getAttribLocation(this.prog, "vs_Col");
     this.attrTranslate = gl.getAttribLocation(this.prog, "vs_Translate");
+
+
+    this.attrTransform = gl.getAttribLocation(this.prog, "vs_Transform");
+
+
     this.attrUV = gl.getAttribLocation(this.prog, "vs_UV");
     this.unifModel      = gl.getUniformLocation(this.prog, "u_Model");
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
@@ -61,6 +74,11 @@ class ShaderProgram {
     this.unifEye   = gl.getUniformLocation(this.prog, "u_Eye");
     this.unifRef   = gl.getUniformLocation(this.prog, "u_Ref");
     this.unifUp   = gl.getUniformLocation(this.prog, "u_Up");
+    this.unifPopulationMap = gl.getUniformLocation(this.prog, "u_PopulationMap");
+    this.unifSampler2D = gl.getUniformLocation(this.prog, "u_RenderedTexture");
+    this.unifTerrainToggle = gl.getUniformLocation(this.prog, "u_TerrainToggle");
+    this.unifPopToggle = gl.getUniformLocation(this.prog, "u_PopToggle");
+
   }
 
   use() {
@@ -111,6 +129,15 @@ class ShaderProgram {
     }
   }
 
+  setPopulationMap(mapData:number[]) {
+    this.use();
+
+    if (this.unifPopulationMap !== -1) {
+      gl.uniform1fv(this.unifPopulationMap, mapData);
+    }
+
+  }
+
   setCameraAxes(axes: mat3) {
     this.use();
     if (this.unifCameraAxes !== -1) {
@@ -125,8 +152,24 @@ class ShaderProgram {
     }
   }
 
+  setTerrainToggle(t: number) {
+    this.use();
+    if (this.unifTerrainToggle !== -1) {
+      gl.uniform1f(this.unifTerrainToggle, t);
+    }
+  }
+
+  setPopToggle(t: number) {
+    this.use();
+    if (this.unifPopToggle !== -1) {
+      gl.uniform1f(this.unifPopToggle, t);
+    }
+  }
+
   draw(d: Drawable) {
     this.use();
+    gl.uniform1i(this.unifSampler2D, 0);
+
 
     if (this.attrPos != -1 && d.bindPos()) {
       gl.enableVertexAttribArray(this.attrPos);
@@ -144,6 +187,12 @@ class ShaderProgram {
       gl.enableVertexAttribArray(this.attrCol);
       gl.vertexAttribPointer(this.attrCol, 4, gl.FLOAT, false, 0, 0);
       gl.vertexAttribDivisor(this.attrCol, 1); // Advance 1 index in col VBO for each drawn instance
+    }
+
+    if (this.attrTransform != -1 && d.bindCol()) {
+      gl.enableVertexAttribArray(this.attrTransform);
+      gl.vertexAttribPointer(this.attrTransform, 9, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(this.attrTransform, 1); // Advance 1 index in col VBO for each drawn instance
     }
 
     if (this.attrTranslate != -1 && d.bindTranslate()) {

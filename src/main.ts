@@ -7,21 +7,24 @@ import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import {setGL} from './globals';
 import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
+import Road from './Road';
 
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
+  displayTerrain: true,
+  displayPopulation: true,
 };
 
 let square: Square;
 let screenQuad: ScreenQuad;
 let time: number = 0.0;
+let road: Road;
 
 function loadScene() {
   square = new Square();
   square.create();
-  screenQuad = new ScreenQuad();
-  screenQuad.create();
+
 
   // Set up instanced rendering data arrays here.
   // This example creates a set of positional
@@ -58,8 +61,16 @@ function main() {
   stats.domElement.style.top = '0px';
   document.body.appendChild(stats.domElement);
 
+
+
+
+
+
   // Add controls to the gui
   const gui = new DAT.GUI();
+  gui.add(controls, 'displayTerrain');
+  gui.add(controls, 'displayPopulation');
+
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -71,14 +82,17 @@ function main() {
   // Later, we can import `gl` from `globals.ts` to access it
   setGL(gl);
 
+
   // Initial call to load scene
   loadScene();
+  screenQuad = new ScreenQuad();
+  screenQuad.create();
 
   const camera = new Camera(vec3.fromValues(50, 50, 10), vec3.fromValues(50, 50, 0));
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(0.2, 0.2, 0.2, 1);
-  gl.enable(gl.BLEND);
+  // gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE); // Additive blending
 
   const instancedShader = new ShaderProgram([
@@ -91,20 +105,88 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/flat-frag.glsl')),
   ]);
 
+  const texture = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/flat-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/textureShader.glsl')),
+  ]);
+
   // This function will be called every frame
   function tick() {
     camera.update();
     stats.begin();
     instancedShader.setTime(time);
     flat.setTime(time++);
+
+
+
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.clear();
-    renderer.render(camera, flat, [screenQuad]);
+    const texWidth = window.innerWidth;
+    const texHeight = window.innerHeight;
+  
+    var fb = gl.createFramebuffer();
+    var myTexture = gl.createTexture();
+    var rb = gl.createRenderbuffer();
+  
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.bindTexture(gl.TEXTURE_2D, myTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);   
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);   
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);   
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);   
+  
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texWidth, texHeight);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+  
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, myTexture, 0);
+  
+  
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+  
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+      console.log("error");
+    }
+  
+    // Render 3D Scene:
+  
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  
+    // done with shader fun code for this part
+
+    if (controls.displayPopulation == true) {
+      texture.setPopToggle(1.0);
+    } else {
+      texture.setPopToggle(0.0);
+    }
+
+    if (controls.displayTerrain == true) {
+      texture.setTerrainToggle(1.0);
+    } else {
+      texture.setTerrainToggle(0.0);
+    }
+  
+    renderer.render(camera, flat,[screenQuad]);
+
+
+    road = new Road(myTexture);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, myTexture);
+
+    renderer.render(camera, texture,   [screenQuad]);
     renderer.render(camera, instancedShader, [
-      square,
+      // square,
     ]);
     stats.end();
 
+    
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
   }
