@@ -6,24 +6,32 @@ import Edge from './edge';
 import Intersection from './intersection'
 import {worley} from './noiseFunctions';
 import { gl } from './globals';
+import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants';
 
 class Road {
     turtleStack: TurtleStack = new TurtleStack();
+    gridStack: TurtleStack = new TurtleStack();
+
     currTurtle: Turtle; 
     // mapTexture: Array<vec4>;
     mapTexture: Uint8Array;
     mapWidth: number;
     mapHeight: number;
     first1: boolean = true;
+    highwayTime = true;
+    justClipped = false;
 
     edges: Array<Edge> = new Array<Edge>();
+    highwayEdges: Array<Edge> = new Array<Edge>();
     intersections: Set<Intersection> = new Set();
+
+    highwayLength: number = 0.11;
 
     transformations: mat3[] = new Array();
 
     constructor (texture: Uint8Array, width: number, height: number) {
 
-        this.currTurtle = new Turtle(vec3.fromValues(-0.8, -0.8, 1), vec3.fromValues(1, 0, 0), vec3.fromValues(1, 0, 0), 1);
+        this.currTurtle = new Turtle(vec3.fromValues(-0.4, -0.8, 1), vec3.fromValues(-1, 0, 0), vec3.fromValues(1, 0, 0), 1);
         this.turtleStack.push(this.currTurtle);
 
         this.currTurtle = new Turtle(vec3.fromValues(-0.9, 0.9, 1), vec3.fromValues(1, -1, 0), vec3.fromValues(1, 0, 0), 1);
@@ -48,6 +56,7 @@ class Road {
 
     updateState() {
         let counter = 0;
+
 
         while (this.turtleStack.stack.length != 0) {
             if (counter > 200) {
@@ -99,7 +108,7 @@ class Road {
                 } else {
                     this.rotateTurtle(rotateAmt3);
                 }
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(this.currTurtle);
                 }
 
@@ -120,12 +129,12 @@ class Road {
                 realTurtle2.rotate(theta2);
 
                 this.currTurtle = realTurtle1;
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(realTurtle1);
                 }
 
                 this.currTurtle = realTurtle2;
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(realTurtle2);
                 }
 
@@ -153,15 +162,15 @@ class Road {
                 realTurtle3.rotate(theta3);
 
                 this.currTurtle = realTurtle1;
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(realTurtle1);
                 }
                 this.currTurtle = realTurtle2;
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(realTurtle2);
                 }
                 this.currTurtle = realTurtle3;
-                if (this.placeEdge(0.1, 0.005)) {
+                if (this.placeEdge(this.highwayLength + Math.random() * 0.02 - 0.01, 0.005)) {
                     this.turtleStack.push(realTurtle3);
                 }
                 // this.turtleStack.push(realTurtle2);
@@ -169,6 +178,120 @@ class Road {
 
             }
         }
+
+        this.highwayTime = false;
+
+        for (var i = 0; i < this.highwayEdges.length; i++) {
+            let prob = 0.6;
+            if (Math.random() < prob) {
+                this.growGrid(this.highwayEdges[i]);
+            }
+        }
+
+    }
+
+    growGrid(e: Edge) {
+        let gridSpacing = Math.max(e.length / 3, 0.02);
+        for (var i = 0; i < 4; i++) {
+            let currOrigin = vec3.create();
+            vec3.multiply(currOrigin, vec3.fromValues(i * gridSpacing, i * gridSpacing, 0), e.direction);
+            vec3.add(currOrigin, e.origin, currOrigin);
+
+            let firstTurtle = new Turtle(currOrigin, vec3.fromValues(e.direction[0], e.direction[1], 0), vec3.fromValues(0, 1, 0,), 2);
+            firstTurtle.rotate(90);
+            this.currTurtle = firstTurtle;
+            this.gridStack = new TurtleStack();
+            this.gridStack.push(firstTurtle);
+            let counter = 0;
+            while (this.gridStack.stack.length != 0) {
+                counter++
+                if (counter > 10) {
+                    break;
+                }
+                this.currTurtle = this.gridStack.pop();
+                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.5 * 255.0) {
+                    let prob = 0.5;
+                    if (Math.random() < prob) {
+                        break;
+                    }
+                }
+                let turnTurtle = new Turtle(vec3.fromValues(this.currTurtle.position[0], this.currTurtle.position[1], this.currTurtle.position[2]), 
+                                            vec3.fromValues(this.currTurtle.forward[0], this.currTurtle.forward[1], this.currTurtle.forward[2]), 
+                                            vec3.fromValues(this.currTurtle.right[0], this.currTurtle.right[1], this.currTurtle.right[2]),
+                                            this.currTurtle.depth);
+                turnTurtle.rotate(-90);
+                let probTurn = 0.7;
+
+                if (this.placeEdge(gridSpacing, 0.002)) {
+                    this.gridStack.push(this.currTurtle);
+                    if (Math.random() < probTurn) {
+                        this.currTurtle = turnTurtle;
+                        this.placeEdge(gridSpacing, 0.002);
+                    }
+
+                } else {
+                    if (this.justClipped) {
+                        if (Math.random() < probTurn) {
+                            this.currTurtle = turnTurtle;
+                            this.placeEdge(gridSpacing, 0.002);
+                        }
+                    }
+                }                       
+                
+                
+            }
+        }
+
+
+
+        for (var i = 0; i < 4; i++) {
+            let currOrigin = vec3.create();
+            vec3.multiply(currOrigin, vec3.fromValues(i * gridSpacing, i * gridSpacing, 0), e.direction);
+            vec3.add(currOrigin, e.origin, currOrigin);
+
+            let firstTurtle = new Turtle(currOrigin, vec3.fromValues(e.direction[0], e.direction[1], 0), vec3.fromValues(0, 1, 0,), 2);
+            firstTurtle.rotate(-90);
+            this.currTurtle = firstTurtle;
+            this.gridStack = new TurtleStack();
+            this.gridStack.push(firstTurtle);
+            let counter = 0;
+            while (this.gridStack.stack.length != 0) {
+                counter++
+                if (counter > 10) {
+                    break;
+                }
+                this.currTurtle = this.gridStack.pop();
+
+                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.5 * 255.0) {
+                    break;
+                }
+
+                let turnTurtle = new Turtle(vec3.fromValues(this.currTurtle.position[0], this.currTurtle.position[1], this.currTurtle.position[2]), 
+                                            vec3.fromValues(this.currTurtle.forward[0], this.currTurtle.forward[1], this.currTurtle.forward[2]), 
+                                            vec3.fromValues(this.currTurtle.right[0], this.currTurtle.right[1], this.currTurtle.right[2]),
+                                            this.currTurtle.depth);
+                turnTurtle.rotate(90);
+                let probTurn = 0.7;
+
+                if (this.placeEdge(gridSpacing, 0.002)) {
+                    this.gridStack.push(this.currTurtle);
+                    if (Math.random() < probTurn) {
+                        this.currTurtle = turnTurtle;
+                        this.placeEdge(gridSpacing, 0.002);
+                    }
+                } else {
+                    if (this.justClipped) {
+                        if (Math.random() < probTurn) {
+                            this.currTurtle = turnTurtle;
+                            this.placeEdge(gridSpacing, 0.002);
+                        }
+                    }
+                }
+            }
+        }
+
+
+
     }
 
     outOfBounds(x: number, y: number) : boolean {
@@ -196,7 +319,7 @@ class Road {
             return;
         }
         let distance = vec2.distance(vec2.fromValues(testEdge.origin[0], testEdge.origin[1]), minIntersection.getPos());
-        if (distance < 0.00000001) {
+        if (distance < 0.000000000000001) {
             return;
         }
         testEdge.setLength(distance);
@@ -209,9 +332,11 @@ class Road {
         this.intersect(newEdge);
         let newLength = newEdge.length;
         let clipped = false;
+        this.justClipped = false;
         if (newLength < prevLength) {
             console.log("we clipped something" + newEdge.origin);
             clipped = true;
+            // this.justClipped = true;
         }
         if (this.getTerrain(newEdge.origin[0], newEdge.origin[1]) < 0.5 || this.getTerrain(newEdge.endpoint[0], newEdge.endpoint[1]) < 0.5) {
             console.log("under the sea");
@@ -221,6 +346,9 @@ class Road {
                 return false;
             }
             this.edges.push(newEdge);
+            if (this.highwayTime) {
+                this.highwayEdges.push(newEdge);
+            }
             let translateMatrix = mat3.create();
             let identity = mat3.create();
             mat3.identity(identity);

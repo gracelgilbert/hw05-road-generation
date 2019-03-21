@@ -31,7 +31,7 @@ class Intersection {
 
         let X: number;
         let Y: number;
-        let epsilon = 0.0000001
+        let epsilon = 0.00000001
 
         if (Math.abs(x11 - x12) < epsilon) {
             X = x11;
