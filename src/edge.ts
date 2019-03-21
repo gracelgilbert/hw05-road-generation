@@ -8,12 +8,12 @@ class Edge {
     width: number;
 
     constructor (origin: vec3, length: number, direction: vec3, width: number) {
-        this.origin = origin;
+        this.origin = vec3.fromValues(origin[0], origin[1], origin[2]);
         this.length = length;
-        this.direction = direction;
+        this.direction = vec3.fromValues(direction[0], direction[1], direction[2]);
         this.width = width;
         this.endpoint = vec3.create();
-        vec3.multiply(this.endpoint, vec3.fromValues(this.length, this.length, this.length), this.direction);
+        vec3.multiply(this.endpoint, vec3.fromValues(this.length, this.length, 1.0), this.direction);
         vec3.add(this.endpoint, this.origin, this.endpoint);
     }
 
@@ -43,7 +43,7 @@ class Edge {
 
     setLength(newLen: number) {
         this.length = newLen;
-        vec3.multiply(this.endpoint, vec3.fromValues(this.length, this.length, this.length), this.direction);
+        vec3.multiply(this.endpoint, vec3.fromValues(this.length, this.length, 0), this.direction);
         vec3.add(this.endpoint, this.origin, this.endpoint);
     }
 

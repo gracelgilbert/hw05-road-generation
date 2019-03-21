@@ -5,9 +5,6 @@ import {gl} from '../globals';
 class Square extends Drawable {
   indices: Uint32Array;
   positions: Float32Array;
-  // colors: Float32Array;
-  // offsets: Float32Array; // Data for bufTranslate
-  // transforms: Float32Array;
   cols1: Float32Array;
   cols2: Float32Array;
   cols3: Float32Array;

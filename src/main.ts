@@ -164,18 +164,14 @@ function main() {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, myTexture, 0);
+    var pixels = new Uint8Array(texWidth * texHeight * 4);
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
-      var pixels = new Uint8Array(texWidth * texHeight * 4);
       gl.readPixels(0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     }
     console.log(pixels[0] / 255 + ", " + pixels[1] / 255 + "," + pixels[2] / 255 + "," + pixels[3] / 255);
-    var vectorPixels = new Array<vec4>(texWidth * texHeight);
-    for (var i = 0; i < texWidth * texHeight; i++) {
-      let vectorVal = vec4.fromValues(pixels[4 * i] / 255, pixels[4 * i + 1] / 255, pixels[4 * i + 2] / 255, pixels[4 * i + 3] / 255);
-      vectorPixels.push(vectorVal);
-    }
 
-    road = new Road(vectorPixels, texWidth, texHeight);
+
+    road = new Road(pixels, texWidth, texHeight);
 
     loadScene(road);
 

@@ -159,29 +159,36 @@ void main() {
   float x = 0.5 * (fs_Pos.x + 1.0);
   float y = 0.5 * (fs_Pos.y + 1.0);
 
+  x /= 1.9;
+  y /= 1.9;
+  x += 0.07;
+  y += 0.18;
+
   float gray = pow(computeWorley(512.0 * x, 512.0 * y, 0.1, 0.1), 2.0);
 
   float heightMap = 1.0 - pow(fbmWorley(0.9 * 400.0 * x, 0.9 * 512.0 * y, 0.8, 100.0, 120.0), 1.5);
   float worleyMap = 0.05 * (1.0 - pow(computeWorley(512.0 * x, 512.0 * y, 1.0, 0.1), 1.0));
 
-  vec3 waterColor = vec3(0.0, 0.0, 0.6);
+  vec3 waterColor = vec3(0.0, 0.0, 0.9);
   vec3 landColor = vec3(0.3, 0.5, 0.0);
 
   vec3 terrainColor = mix(landColor, waterColor, heightMap);
 
-  if (heightMap  + worleyMap < 0.53) {
+  if (heightMap + worleyMap < 0.53) {
     terrainColor = heightMap * waterColor;
+    if (heightMap == 0.0) {
+      terrainColor = waterColor;
+    }
   } else {
     terrainColor = heightMap * landColor;
   }
 
-  float population = pow((1.0 - fbmWorley2(512.0 * x, 512.0 * y, 1.0, 20.0, 20.0)), 1.6) * floor(0.9 + terrainColor.g);
+  float population = 2.0 * pow((1.0 - fbmWorley2(512.0 * x - 80.0, 512.0 * y - 60.0, 1.0, 13.0, 13.0)), 2.0);
+  if (heightMap + worleyMap > 0.53 && heightMap + worleyMap < 0.65) {
+    population += mix(0.0, 5.0, 0.65 - (heightMap + worleyMap));
+  }
   
+  population *= floor(0.9 + terrainColor.g);
   out_Col = vec4(terrainColor, population);
-
-  // if (y > 0.5) {
-  //   out_Col = vec4(1.0);
-  // }
-
 
 }
