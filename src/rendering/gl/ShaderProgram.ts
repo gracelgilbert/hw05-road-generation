@@ -45,6 +45,7 @@ class ShaderProgram {
   unifSampler2D: WebGLUniformLocation;
   unifTerrainToggle: WebGLUniformLocation;
   unifPopToggle: WebGLUniformLocation;
+  unifShorePop: WebGLUniformLocation;
 
 
   constructor(shaders: Array<Shader>) {
@@ -82,6 +83,7 @@ class ShaderProgram {
     this.unifSampler2D = gl.getUniformLocation(this.prog, "u_RenderedTexture");
     this.unifTerrainToggle = gl.getUniformLocation(this.prog, "u_TerrainToggle");
     this.unifPopToggle = gl.getUniformLocation(this.prog, "u_PopToggle");
+    this.unifShorePop = gl.getUniformLocation(this.prog, "u_ShorePop");
 
   }
 
@@ -167,6 +169,13 @@ class ShaderProgram {
     this.use();
     if (this.unifPopToggle !== -1) {
       gl.uniform1f(this.unifPopToggle, t);
+    }
+  }
+
+  setShorePop(t: number) {
+    this.use();
+    if (this.unifShorePop !== -1) {
+      gl.uniform1f(this.unifShorePop, t);
     }
   }
 

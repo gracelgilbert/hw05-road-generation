@@ -23,25 +23,39 @@ class Road {
 
     edges: Array<Edge> = new Array<Edge>();
     highwayEdges: Array<Edge> = new Array<Edge>();
-    intersections: Set<Intersection> = new Set();
+    intersections: Array<Intersection> = new Array<Intersection>();
 
-    highwayLength: number = 0.11;
+    highwayLength: number;
+    gridDensity: number;
 
     transformations: mat3[] = new Array();
 
-    constructor (texture: Uint8Array, width: number, height: number) {
+    constructor (texture: Uint8Array, width: number, height: number, roadLength: number, gridDensity: number) {
 
         this.currTurtle = new Turtle(vec3.fromValues(-0.4, -0.8, 1), vec3.fromValues(-1, 0, 0), vec3.fromValues(1, 0, 0), 1);
         this.turtleStack.push(this.currTurtle);
 
+        let intersection1 = new Intersection();
+        intersection1.setPos(vec2.fromValues(this.currTurtle.position[0], this.currTurtle.position[1]));
+        this.intersections.push(intersection1);
+
         this.currTurtle = new Turtle(vec3.fromValues(-0.9, 0.9, 1), vec3.fromValues(1, -1, 0), vec3.fromValues(1, 0, 0), 1);
         this.turtleStack.push(this.currTurtle);
 
-        this.currTurtle = new Turtle(vec3.fromValues(0.02, 0.15, 1), vec3.fromValues(0, 1, 0), vec3.fromValues(1, 0, 0), 1);
+        let intersection2 = new Intersection();
+        intersection2.setPos(vec2.fromValues(this.currTurtle.position[0], this.currTurtle.position[1]));
+        this.intersections.push(intersection2);
 
+
+        this.currTurtle = new Turtle(vec3.fromValues(0.02, 0.15, 1), vec3.fromValues(0, 1, 0), vec3.fromValues(1, 0, 0), 1);
         this.turtleStack.push(this.currTurtle);
 
+        let intersection3 = new Intersection();
+        intersection3.setPos(vec2.fromValues(this.currTurtle.position[0], this.currTurtle.position[1]));
+        this.intersections.push(intersection3);
 
+        this.highwayLength = roadLength;
+        this.gridDensity = gridDensity;
 
         // this.currTurtle = new Turtle(vec3.fromValues(-1.0,-1.0, 1), vec3.fromValues(0, 1, 0), vec3.fromValues(1, 0, 0), 1);
         this.mapTexture = new Uint8Array(texture.length);
@@ -182,7 +196,10 @@ class Road {
         this.highwayTime = false;
 
         for (var i = 0; i < this.highwayEdges.length; i++) {
-            let prob = 0.6;
+            let prob = this.gridDensity * 0.9;
+            if (i % 2 == 0) {
+                prob = 0.0;
+            }
             if (Math.random() < prob) {
                 this.growGrid(this.highwayEdges[i]);
             }
@@ -205,13 +222,14 @@ class Road {
             let counter = 0;
             while (this.gridStack.stack.length != 0) {
                 counter++
-                if (counter > 10) {
+                if (counter > 12) {
                     break;
                 }
                 this.currTurtle = this.gridStack.pop();
-                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.5 * 255.0) {
-                    let prob = 0.5;
-                    if (Math.random() < prob) {
+                // return;
+                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.8 * 255.0) {
+                    let prob = this.gridDensity * 0.95 * this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) / 255.0;
+                    if (Math.random() > prob) {
                         break;
                     }
                 }
@@ -243,7 +261,6 @@ class Road {
         }
 
 
-
         for (var i = 0; i < 4; i++) {
             let currOrigin = vec3.create();
             vec3.multiply(currOrigin, vec3.fromValues(i * gridSpacing, i * gridSpacing, 0), e.direction);
@@ -262,8 +279,11 @@ class Road {
                 }
                 this.currTurtle = this.gridStack.pop();
 
-                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.5 * 255.0) {
-                    break;
+                if (this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) < 0.8 * 255.0) {
+                    let prob = this.gridDensity * 0.95 * this.getPopulation(this.currTurtle.position[0], this.currTurtle.position[1]) / 255.0;
+                    if (Math.random() > prob) {
+                        break;
+                    }
                 }
 
                 let turnTurtle = new Turtle(vec3.fromValues(this.currTurtle.position[0], this.currTurtle.position[1], this.currTurtle.position[2]), 
@@ -325,19 +345,54 @@ class Road {
         testEdge.setLength(distance);
     }
 
+    snapToIntersection(e: Edge) {
+        let endpointX = e.endpoint[0];
+        let endpointY = e.endpoint[1];
+        let radius = e.length / 2.0;
+        let snap = false;
+        
+
+        let minIntersection = new Intersection();
+        let minDist = 1000000;
+        for (var i = 0; i < this.intersections.length; i++) {
+            let intersectionPoint = vec2.fromValues(this.intersections[i].getPos()[0], this.intersections[i].getPos()[1]);
+            let currDist = vec2.distance(vec2.fromValues(endpointX, endpointY), intersectionPoint); 
+            if (currDist < radius && currDist < minDist) {
+                snap = true;
+                minIntersection = this.intersections[i];
+                minDist = currDist;
+            } 
+        }
+        if (snap) {
+
+            let newDirection = vec2.fromValues(minIntersection.position[0] - e.origin[0], minIntersection.position[1] - e.origin[1]);
+            let oldDirection = vec2.fromValues(e.direction[0], e.direction[1]);
+            let angle = vec2.angle(oldDirection, newDirection);
+            angle = 180.0 * angle / Math.PI;
+            this.currTurtle.rotate(angle);
+            e.setDirection(vec3.fromValues(this.currTurtle.forward[0], this.currTurtle.forward[1], 0));
+            e.setLength(vec2.distance(vec2.fromValues(e.origin[0], e.origin[1]), minIntersection.getPos()));
+
+        } else {
+            // let newIntersection = new Intersection();
+            // newIntersection.setPos(vec2.fromValues(endpointX, endpointY));
+        }
+    }
+
 
     placeEdge(length: number, width: number) : boolean {
         let newEdge = new Edge(this.currTurtle.position, length, this.currTurtle.forward, width);
         let prevLength = newEdge.length;
         this.intersect(newEdge);
+        this.snapToIntersection(newEdge);
         let newLength = newEdge.length;
         let clipped = false;
-        this.justClipped = false;
-        if (newLength < prevLength) {
-            console.log("we clipped something" + newEdge.origin);
+        if (Math.abs(newLength - prevLength) > 0.00001) {
             clipped = true;
-            // this.justClipped = true;
         }
+        // if (newLength < 0.01) {
+        //     return false;
+        // }
         if (this.getTerrain(newEdge.origin[0], newEdge.origin[1]) < 0.5 || this.getTerrain(newEdge.endpoint[0], newEdge.endpoint[1]) < 0.5) {
             console.log("under the sea");
             return false;
@@ -346,6 +401,9 @@ class Road {
                 return false;
             }
             this.edges.push(newEdge);
+            let currIntersection = new Intersection();
+            currIntersection.setPos(vec2.fromValues(newEdge.endpoint[0], newEdge.endpoint[1]));
+            this.intersections.push(currIntersection);
             if (this.highwayTime) {
                 this.highwayEdges.push(newEdge);
             }
@@ -412,7 +470,6 @@ class Road {
 
 
         if (blue > green){
-            console.log("Finding underwater")
             return 0; // Water
         } else {
             return 1; // Land

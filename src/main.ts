@@ -14,12 +14,18 @@ import Road from './Road';
 const controls = {
   displayTerrain: true,
   displayPopulation: true,
+  shorePopulation: 0.5,
+  roadLength: 0.11,
+  gridDensity: 1.0,
 };
 
 let square: Square;
 let screenQuad: ScreenQuad;
 let time: number = 0.0;
 let road: Road;
+let prevPopSeed = controls.shorePopulation;
+let prevRoadLength = controls.roadLength;
+let prevGridDensity = controls.gridDensity;
 
 function loadScene(road: Road) {
   square = new Square();
@@ -40,8 +46,6 @@ function loadScene(road: Road) {
   let col3sArray = [];
 
   let n: number = road.transformations.length;
-  console.log("here");
-  console.log(n);
 
   for(let i = 0; i < n; i++) {
     let transformation: mat3 = road.transformations[i];
@@ -83,6 +87,9 @@ function main() {
   const gui = new DAT.GUI();
   gui.add(controls, 'displayTerrain');
   gui.add(controls, 'displayPopulation');
+  gui.add(controls, 'shorePopulation', 0.0, 1.0).step(0.1);
+  gui.add(controls, 'roadLength', 0.08, 0.14).step(0.01);
+  gui.add(controls, 'gridDensity', 0.5, 1.5).step(0.1);
 
 
   // get canvas and webgl context
@@ -159,6 +166,7 @@ function main() {
     // done with shader fun code for this part
 
 
+    flat.setShorePop(controls.shorePopulation);
 
     renderer.render(camera, flat,[screenQuad]);
 
@@ -168,10 +176,7 @@ function main() {
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
       gl.readPixels(0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     }
-    console.log(pixels[0] / 255 + ", " + pixels[1] / 255 + "," + pixels[2] / 255 + "," + pixels[3] / 255);
-
-
-    road = new Road(pixels, texWidth, texHeight);
+    road = new Road(pixels, texWidth, texHeight, controls.roadLength, controls.gridDensity);
 
     loadScene(road);
 
@@ -182,6 +187,37 @@ function main() {
     stats.begin();
     instancedShader.setTime(time);
     flat.setTime(time++);
+
+    if (prevPopSeed != controls.shorePopulation || prevRoadLength != controls.roadLength || prevGridDensity != controls.gridDensity) {
+      
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      flat.setShorePop(controls.shorePopulation);
+
+      renderer.render(camera, flat,[screenQuad]);
+      prevPopSeed = controls.shorePopulation;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, myTexture, 0);
+      var pixels = new Uint8Array(texWidth * texHeight * 4);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        gl.readPixels(0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      }
+      prevRoadLength = controls.roadLength;
+      prevGridDensity = controls.gridDensity;
+      road = new Road(pixels, texWidth, texHeight, controls.roadLength, controls.gridDensity);
+
+      loadScene(road);
+    }
+
+    // if (prevRoadLength != controls.roadLength) {
+    //   prevRoadLength = controls.roadLength;
+    //   road = new Road(pixels, texWidth, texHeight, controls.roadLength);
+
+    //   loadScene(road);
+    // }
 
 
 
