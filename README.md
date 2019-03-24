@@ -58,7 +58,15 @@ Each turtle has a branching number that determines how many branches it splits i
 
 The highway length is modifiable by the user, varied slightly with a random value. 
 
-# images of long and short highways
+![](Images/LongRoads.png)
+<p align="center">
+  Long Roads
+</p>
+
+![](Images/ShortRoads.png)
+<p align="center">
+  Short Roads
+</p>
 
 #### Grid Generation
 The grid generation process occurs for each highway edge. When a grid is generation on a highway edge, it starts at the origin of the edge. A turtle rotates 90 degrees, draws an edge forward, rotates 90 degrees in the opposite direction, and draws another edge forward. Another turtle starts at the intersection of the two previous grid rows, continuing this right angle branching pattern straight out in the direction perpendicular to the base highway road. Once one perpedicular grid section is place, another one is placed further along the initial highway edge, continuing the grid. Each perpendicular section has a 1/3 the length of the highway road, allowing for three grid rows per highway edge. 
