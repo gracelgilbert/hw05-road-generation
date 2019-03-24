@@ -1,8 +1,8 @@
 # Grace Gilbert (gracegi): Road Generation
 
-![] (Images/Cover1.png)
+![](Images/Cover1.png)
 
-![] (Images/Cover2.png)
+![](Images/Cover2.png)
 
 https://gracelgilbert.github.io/hw05-road-generation/
 
@@ -47,7 +47,7 @@ The population map is generated with Worley Noise based FBM. The value output fr
 </p>
 
 ### Roads
-General structure and intersections
+
 #### Highway Generation
 #### Grid Generation
 
