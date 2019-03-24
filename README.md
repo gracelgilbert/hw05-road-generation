@@ -1,56 +1,55 @@
-# Homework 5: Road Generation
+# Grace Gilbert (gracegi): Road Generation
 
-For this assignment, you will generate a network of roads to form the basis of a city using a modified version of L-systems. As in homework 4, you will be using instanced rendering to draw your road networks.
+![] (Images/Cover1.png)
 
-## Base Code
-We have provided the same code that came with homework 4, but you will likely want to use most of your code from that assignment. Feel free to copy over as much of your homework 4 implementation as you want. We have also provided [Procedural Modeling of Cities](proceduralCityGeneration.pdf), a brief technical paper describing techniques for generating road networks. Refer to this as you implement the sections below.
+![] (Images/Cover2.png)
 
-## Assignment Requirements
-- __(10 points)__ Use whatever noise functions suit you to generate 2D map data of the following information, and set up GUI toggles to render each map on a 2D screen quadrangle. The user should have the option to view both overlaid on each other.
-  - Terrain elevation, setting anything below a certain height to water. Higher elevation should be lighter in color. Include an option to display a simple land versus water view.
-  - Population density. Denser population should be lighter in color.
-- __(20 points)__ Create a set of classes to represent a pseudo L-system; you will still have a Turtle to track your drawing state, but you will expand your road network based on the Turtle's current environment as it moves and draws. You won't be tracking a grammar as a set of characters, but you will keep a set of rules to determine how to advance your Turtle.
-  - Your Turtle will begin from a random point in the bounds of your screen.
-  - Depending on the type of road network being generated (see next section) your Turtle will move forward and draw some sort of road in its wake.
-  - Each time the Turtle completes a road segment, it will evaluate whether it should branch to create more roads in different directions (same idea as the push and pop of Turtle state). This is where your expansion rules come in; the Turtle must decide how it will branch (if at all).
-  - Store your roads as sets of edges and intersections so that you can more easily make roads connect to one another as described in section 3.3.1 of Procedural Modeling of Cities
-- __(20 points)__ Create distinct rule sets for drawing roads that obey the following layouts (refer to figure 5 in [Procedural Modeling of Cities](proceduralCityGeneration.pdf) for illustrations):
-  - Basic road branching: The main roads follow population density as a metric for directional bias
-  - Checkered road networking: The roads are aligned with some global directional vector and have a maximum block width and length. Intersections are all roughly 90 degrees.
-- __(30 points)__ Using the components you created in the previous sections, generate the 2D street layout of a city with the following features:
-  - An overarching sparse layout of highway roads that are thicker than other roads
-  - Within the highway outline, denser clusters of smaller roads with less visual line thickness than the highways
-  - Inclusion of both road branching methods
-  - Only highways are allowed to cross water
-  - Roads are self-sensitive, as described in section 3.3.1 of Procedural Modeling of Cities
+https://gracelgilbert.github.io/hw05-road-generation/
 
-- __(10 points)__ Using dat.GUI, make at least three aspects of your program interactive, such as:
-  - Terrain shape
-  - Population density
-  - Highway density
-  - Random seed used for the RNG basis of road branching
+## Resources
+- I looked at CIS 460 lecture slides for line segment intersection
+- I used the base code for CIS 460 Homework 4 for help with setting up rendering to a texture
+- I looked at the following link for help setting up rendering to a texture with WebGL: https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
+- I used the following source to help sample from a WebGLTexture: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/readPixels
 
-- __(10 points)__ Following the specifications listed
-[here](https://github.com/pjcozzi/Articles/blob/master/CIS565/GitHubRepo/README.md),
-create your own README.md, renaming the file you are presently reading to
-INSTRUCTIONS.md. Don't worry about discussing runtime optimization for this
-project. Make sure your README contains the following information:
-    - Your name and PennKey
-    - Citation of any external resources you found helpful when implementing this
-    assignment.
-    - A link to your live github.io demo (refer to the pinned Piazza post on
-      how to make a live demo through github.io)
-    - An explanation of the techniques you used to generate your L-System features.
-    Please be as detailed as you can; not only will this help you explain your work
-    to recruiters, but it helps us understand your project when we grade it!
+## Implementation
+### Map
+I generated the map data in a shader which I render to a texture. I sample from this texture when generating the roads so they grow based map data. I then render this texture to the screen to display. In the texture, the RGB channels represent the terriain color, blue for water and green for land, with lighter values indicating higher terrain. The population density value is stored in the alpha channel. When rendering the texture to the screen, there is a base black screen color. If the user has selected to view the terrain, the RGB value is added to that black color.  If the user has selected to view the population density, the alpha channel value is added to the RGB values of the final screen color, whitening those areas. If neither population nor terrain are dispalayed, the background is set to white so the black roads remain visible.
 
-## Expected visual output
-The results of your road generation need only be simple 2D images, like the ones in Procedural Modeling of Cities. You may make 3D terrain with overlaid roads if you want, but for this assignment it's not necessary.
+![](Images/TerrainView.png)
+<p align="center">
+  Terrain View Only
+</p>
 
-![](nyc.png)
+![](Images/PopulationView.png)
+<p align="center">
+  Population View Only
+</p>
 
-## Extra Credit (Up to 20 points)
-- Implement additional road layouts as described in Procedural Modeling of Cities
-  - Radial road networking: The main roads follow radial tracks around some predefined centerpoint
-  - Elevation road networking: Roads follow paths of least elevation change
-- Add any polish features you'd like to make your visual output more interesting
+![](Images/WhiteView.png)
+<p align="center">
+  Road View Only
+</p>
+
+#### Terrain Map
+The height map is generated with Worley Noise based FBM with a layer of pure Worley noise on top. If the height value is below 0.53, it is filled with water, and higher terrain is land. I do not incorporate the pure Worley noise layer into the final color, as it created unrealistic cell patterns in the texture, but I included it in the height calculation because it broke up the line between water and land nicely. 
+#### Population Map
+The population map is generated with Worley Noise based FBM. The value output from the noise function is raised to a power of 1.5 to create brighter, sharper spots of high population. Population is increased by the shoreline. When the terrain is between the land/water cutoff height and a slightly larger height, I use the distance from the shore to linearly interpolate between 0 and a value controlled by the user. This smoothly increases the population close to the shoreline, which caused the roads to tend to branch out following the shore. This is also a realistic effect, as large populations often gather near coasts.
+
+![](Images/HighShoreDensity.png)
+<p align="center">
+  Maximum shore population density
+</p>
+
+![](Images/NoShorePop.png)
+<p align="center">
+  Road View Only
+</p>
+
+### Roads
+General structure and intersections
+#### Highway Generation
+#### Grid Generation
+
+## Elements to Improve
+
