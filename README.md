@@ -6,6 +6,9 @@
 
 https://gracelgilbert.github.io/hw05-road-generation/
 
+## Inspiration
+The methods used in this project are based on the [Procedural Modeling of Cities](proceduralCityGeneration.pdf) paper, which describes techniques for generating procedural urban road structures.
+
 ## Resources
 - I looked at CIS 460 lecture slides for line segment intersection
 - I used the base code for CIS 460 Homework 4 for help with setting up rendering to a texture
